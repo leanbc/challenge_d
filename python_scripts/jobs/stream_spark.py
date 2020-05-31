@@ -25,6 +25,7 @@ logging.basicConfig(filename= '/logs/'  +  datetime.now().strftime('%Y%m%d_%H%M%
 
 def main(args):
 
+    #parameters ingestion from Job entry
     try:
         topic = args['topic']
         broker = args['broker']
@@ -40,45 +41,48 @@ def main(args):
         logging.error('----------------------------------------------------------------')
 
 
-
+    #parameters to create the streaming session
     kafkaparams= {
         "bootstrap.servers": broker,
         "auto.offset.reset" : "smallest"
     }
 
-
+    #adding the jars to the enviroment
     os.environ['PYSPARK_SUBMIT_ARGS'] = '--packages org.apache.spark:spark-streaming-kafka-0-8_2.11:2.4.5 pyspark-shell'
     
-
+    #creating spark Contecxt 
     sc = SparkContext().getOrCreate()
     ssc = StreamingContext(sc, int(window_streaming_seconds))
     kvs = KafkaUtils.createDirectStream(ssc, [topic], kafkaparams)
 
-
+    #RDD comming form the stream are transformed in order to calculate some metrics
+    #And write them to output path
     try:
+        #writing raw data per streamed window
         raw_data = kvs.map(lambda x: x)
         raw_data.saveAsTextFiles( f"/output/{topic}/raw_data/".format(topic))
 
+        #writing count of country per streamed window
         count_of_country = kvs.map(lambda x: json.loads(x[1])).map(lambda x: (x['country'],1))
         count_of_country = count_of_country.reduceByKey(lambda x,y: x + y )
         count_of_country = count_of_country.transform(lambda x: x.sortBy(lambda x: x[1], ascending=False))
         count_of_country.saveAsTextFiles( f"/output/{topic}/count_of_country/".format(topic))
 
+        #writing unique_user count  per streamed window (we assumed one email per user)
         unique_user = kvs.map(lambda x: json.loads(x[1])).map(lambda x: (x['email'],1))
         unique_user = unique_user.reduceByKey(lambda x,y: x + y )
         unique_user = unique_user.map(lambda x:('count_of_unique_users', x[1]))
         unique_user = unique_user.reduceByKey(lambda x,y: x + y )
         unique_user.saveAsTextFiles( f"/output/{topic}/unique_user/".format(topic))
 
+        #writing aggregation of gender count  per streamed window
         gender=kvs.map(lambda x: json.loads(x[1])).map(lambda x: (x['gender'],1))
         gender=gender.reduceByKey(lambda x,y: x + y)
         gender.saveAsTextFiles( f"/output/{topic}/gender_count/".format(topic))
 
-        
+        #using http://ipinfo.io/ to get info from the IP and writing it
         ip_data=kvs.map(lambda x: json.loads(x[1])).map(lambda x: (x['email'],x['ip_address'],requests.get('http://ipinfo.io/{ip_address}'.format(ip_address=x['ip_address'])).json())) 
         ip_data=ip_data.saveAsTextFiles( f"/output/{topic}/ip_data/".format(topic))
-
-
 
         ssc.start()
         ssc.awaitTermination()

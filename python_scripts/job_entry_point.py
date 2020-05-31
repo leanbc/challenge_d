@@ -17,17 +17,26 @@ if __name__ == '__main__':
         topic=sys.argv[1]
         broker=sys.argv[2]
         job_name=sys.argv[3]
-        window_streaming_seconds=sys.argv[4]
         args={}
 
         args['job_name']=job_name
         args['broker']=broker
         args['topic']=topic
-        args['window_streaming_seconds']=window_streaming_seconds
+        
+
+        if job_name=='jobs.stream_spark_df' or job_name=='jobs.stream_spark':
+            window_streaming_seconds=sys.argv[4]
+            args['window_streaming_seconds']=window_streaming_seconds
+
 
         if job_name=='jobs.stream_spark_df':
             output_format=sys.argv[5]
             args['output_format']=output_format
+
+        args['job_name']=job_name
+        args['broker']=broker
+        args['topic']=topic
+
         
         logging.info(f'job_name set to {job_name}'.format(job_name))
     except IndexError as error:

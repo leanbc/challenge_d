@@ -18,11 +18,10 @@ import json
 from datetime import datetime
 
 
-logging.basicConfig(filename= '/logs/'  +  datetime.now().strftime('%Y%m%d_%H%M%S') +'.log', filemode='w', level=logging.INFO)
-
-
 def main(args):
 
+
+    #parameters ingestion from Job entry
     try:
         topic = args['topic']
         broker = args['broker']
@@ -37,8 +36,10 @@ def main(args):
         logging.error('python3 producer.py topicname data_to_stream')
         logging.error('----------------------------------------------------------------')
 
+    #adding the jars to the enviroment
     os.environ['PYSPARK_SUBMIT_ARGS'] = '--packages org.apache.spark:spark-streaming-kafka-0-8_2.11:2.4.5,org.apache.spark:spark-sql-kafka-0-10_2.11:2.4.5 pyspark-shell'
-    
+
+    #creating park session
     spark = SparkSession \
             .builder \
             .appName("PythonStreamingReciever") \
@@ -47,6 +48,7 @@ def main(args):
 
 
     try:
+        #Reading the stream from Kafka 
         df = spark \
             .readStream \
             .format("kafka") \
@@ -54,9 +56,11 @@ def main(args):
             .option("subscribe", topic) \
             .option("startingOffsets", "earliest") \
             .load() 
-            
+
+        #formatting the message form Kafka    
         df = df.selectExpr("CAST(key AS STRING)", "CAST(value AS STRING)")
 
+        # writing Stream in the format selected in the parameters and to the location /output/topicname
         ds = df.writeStream \
             .format(output_format) \
             .option("format", "append") \

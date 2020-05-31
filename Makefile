@@ -108,4 +108,4 @@ _pyspark_docker:
 
 # Run it like: make _pyspark_docker TOPIC=test1 BROKER=kafka:9093 JOB=jobs.stream_spark WINDOW_STREAMING_SECS=10 
 # Run it like: make _pyspark_docker TOPIC=test1 BROKER=kafka:9093 JOB=jobs.stream_spark_df WINDOW_STREAMING_SECS=10 OUTPUT_FORMAT=parquet
-
+# Run it like: make _pyspark_docker TOPIC=test1 BROKER=kafka:9093 JOB=jobs.consumer
