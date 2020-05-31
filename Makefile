@@ -88,9 +88,9 @@ _create_producer_docker:
 	( \
 	docker exec -it \
 	spark-enviroment \
-	bash -c "pip install -r /requirements.txt && python3 /python_scripts/producer.py  ${TOPIC} ${DATA_TO_PRODUCE} ${BROKER}";\
+	bash -c "pip install -r /requirements.txt && python3 /python_scripts/producer.py  ${TOPIC} ${DATA_TO_PRODUCE} ${BROKER} ${SECS_BETWEEN_MESSAGES}";\
 	)
-# Run it like: make _create_producer_docker	 TOPIC=test1 DATA_TO_PRODUCE=mock_data.json  BROKER=kafka:9093
+# Run it like: make _create_producer_docker	 TOPIC=test1 DATA_TO_PRODUCE=mock_data.json  BROKER=kafka:9093 SECS_BETWEEN_MESSAGES=2
 
 _create_consumer_docker:
 	( \

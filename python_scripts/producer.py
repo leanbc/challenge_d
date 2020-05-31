@@ -16,6 +16,7 @@ try:
     topic=sys.argv[1]
     data_to_produce=sys.argv[2]
     broker=sys.argv[3]
+    secs_between_messages=int(sys.argv[4])
     logging.info(f'Topic new set to {topic}'.format(topic))
     logging.info((f'Data willl be produced from {data_to_produce}'.format(data_to_produce)))
     logging.info((f'Host and port {broker}'.format(broker)))
@@ -58,7 +59,7 @@ def main():
         except:
             result = dict({'error': 'Not Json Object'})
         finally:
-            time.sleep(2)
+            time.sleep(secs_between_messages)
 
 if __name__ == "__main__":
     main()
