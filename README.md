@@ -1,119 +1,74 @@
-Kafka-Docker-Solution
+Kafka*Docker*Solution
 ========================
 
 ## Minimum requirements
 
 * Docker 19.03.5
-* Python3
+* Make
 
 # Description
 
 ### Infraestructure
 
-Consists of 3 docker containers each of them encapsulating the following services
+This is a high level view of the project.
+There will be a cluster of 3 docker containers with Kafka, Zookeeper and a Spark enviroment running.
 
-* Kafka version 2.4.0
-* Zookeeper 3.4.6
-* Postgres 12.1
-* Mongo 4.2.2 
+
+![Alt text](diagram.png?raw=true "Optional Title")
 
 For this MVP, only a one single broker will be spun up.
 
 ### Logic of the workflow
 
-- Spin up cluster 
-- Create Kafka Topic
-- Create Kafka Producer that will download a jsonl file from `'http://tx.tamedia.ch.s3.amazonaws.com/challenge/data/stream.jsonl.gz'`
-- Create Kafka Consumer that will consume the jsonl file
-- Count Consumed Messages 
+* Spin up cluster 
+* Create Kafka Topic
+* Create Kafka Producer that will produce the data `data_to_load/mock_data.json` into the broker.
+* Create Kafka Consumer
+* Stop the cluster.
+
 
 ### How to achive this logic
 
-There are 2 ways of handling this cluster:
-
-- Via Command Line / Terminal
-- Via Make commands (Make is required in this case)
-
-Both ways will be explained parallelly
+* Via Make commands from the command line/Terminal
 
 ### Let's get started
 
 ##### Change to the Repo Directory
 
 
-- cd to `data-challenge-eng` directory.
-
-##### Install python modules 
-
-- run : `pip3 install -r requirements.txt`
+* Git clone the repo 
+* cd to `challenge_d` directory.
 
 ##### Spin up cluster 
-- `docker-compose up -d` OR `make start_cluster`
 
- Once the 4 instances are running it is time to:
- 
+* run `make start_cluster` : Then the 3 docker containers will start
+
 ##### Create topic
+ 
+* run: `make _create_topic_docker TOPIC=test1 PARITITIONS=1 REPLICATION=1 BROKER=kafka:9093` 
+  * This will create a topic named `test1` , with 1 partition, 1 replicationm conneccted to the host and port `kafka:9093`. It is important to use this `kafka:9093` because this is the host and port taht allos you to expose the data oytside the container.
 
-- `python3 python_scripts/create_topic.py name_of_the_topic number_of_partitions replication_factor`
-    - for example: `python3 python_scripts/create_topic.py test 1 1`
-    
-- `make create_topic TOPIC=name_of_the_topic`
-    - for example: `make create_topic TOPIC=test`
-  
 ##### Create Producer
 
-- `python3 python_scripts/producer.py name_of_the_topic_you_want_to_send`
-    - for example: `python3 python_scripts/producer.py test`
-    
-- `make create_producer TOPIC=name_of_the_topic`
-    - for example: `make create_producer TOPIC=test`
-
-The producer will download the file from `'http://tx.tamedia.ch.s3.amazonaws.com/challenge/data/stream.jsonl.gz'` send the messages to the desired topic.
-
-The logs on the console will let you know that the producer is working:
-```INFO:Producer is reading the file now```
+* run `make _create_producer_docker	 TOPIC=test1 DATA_TO_PRODUCE=mock_data.json  BROKER=kafka:9093`
+  * This will send the data in the file `mock_data.json` under the path /data_to_load/ to the broker. Again the broker should be `kafka:9093`.
 
 ##### Create Consumer
 
-The consumer can be set in 3 modes: `stdout` or `psql` or `mongo`
+* The consumer runs from the Spark Container. It run spark applications against the Kafka broker. It has the following structure: An there is an entry point for the consumer, through `job_entry_point.py`, and executes jobs under the `jobs` folder.
 
-    - `stdout`: will output messages to console and create  a simple count in the logs directory.
-    - `psql`: will create a table, with the name of the topic, in the postgres instance.
-    - `mongo`: will create a database, with the name of the topic, in the mongo instance.
+![Alt text](diagram_spark.png?raw=true "Optional Title")
 
-- `python3 python_scripts/consumer.py.py name_of_the_topic_you_want_to_read mode`
-    - for example: `python3 python_scripts/consumer.py.py test psql`
-    - for example: `python3 python_scripts/consumer.py.py test stdout`
-    - for example: `python3 python_scripts/consumer.py.py test mongo`
-    
-- `make create_consumer TOPIC=yourtopicname MODE=mode`
-    - for example: `make create_consumer TOPIC=test MODE=stdout`
-    - for example: `make create_consumer TOPIC=test MODE=psql`
-    - for example: `make create_consumer TOPIC=test MODE=mongo`
-
-##### count messages of the last consumer created
-
-- If consumer mode = `stdout` , run this from the command line:
-
-    -Run `sh count.sh name_of_the_topic` the count of messages will be printed to the console
-
-
-- If consumer mode = `psql`:
-
-    - Via Make run: `make postgres`. Which will log you in the psql container.
-    - Via Docker: `docker exec -it data-challenge-eng_db_1 psql -U postgres `
-   
-    And then run: `Select count(*) From topic_name;` it will give you the number of mesagges inserted at the moment.
-
-- If consumer mode = `mongo`:
-
-    - Via Make run: `make mongo`. Which will log you in the mongo container.
-    - Via Docker: `docker exec -it mongodb  mongo --username admin --password admin `
-   
-    And then run: `use yourtopicname;` and after that `db.yourtopicname.count();`
-
+* You can run them like this:
+  * `make _pyspark_docker TOPIC=test1 BROKER=kafka:9093 JOB=jobs.consumer` . Runs a simple consumer that prints data to stdout.
+  * `make _pyspark_docker TOPIC=test1 BROKER=kafka:9093 JOB=jobs.stream_spark WINDOW_STREAMING_SECS=10`. Runs a consumer via Spark Streaming using RDDs and it computes some metrics in the data streamed in the current window that are save to the `output` folder,together with the raw data.
+    * Metrics:
+      * Country count per streamed window.
+      * Unique user count per streamed window.
+      * Numnber of male and female user  per streamed window.
+      * Using the IP addrees,we get data ,like hostname,city,region ,country,loc,postal and timezone.
+  * `make _pyspark_docker TOPIC=test1 BROKER=kafka:9093 JOB=jobs.stream_spark_df WINDOW_STREAMING_SECS=10 OUTPUT_FORMAT=parquet` Runs a consumer via Spark Streaming using Dataframes.In this case the data is consumed with out calculating any metric.
 
 ##### Close and Destroy The Cluster
 
-run: `make stop_cluster`
-
+* run: `make stop_cluster`
