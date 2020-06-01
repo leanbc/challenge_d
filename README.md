@@ -59,10 +59,11 @@ For this MVP, only a one single broker will be spun up.
 * run `make _create_producer_docker	 TOPIC=test1 DATA_TO_PRODUCE=mock_data.json  BROKER=kafka:9093 SECS_BETWEEN_MESSAGES=1`
   * This will send the data in the file `mock_data.json` under the path /data_to_load/ to the broker. Again the broker should be `kafka:9093`.
   * `SECS_BETWEEN_MESSAGES` is the seconds that the producer waits to send the next message. If it is set to  `0` it makes an ingestion without waiting.
+  * This terminal will be running until the producer ends the whole queue of messages in the file.
 
 ##### Create Consumer
 
-* The consumer runs from the Spark Container. It runs spark applications against the Kafka broker. It has the following structure: there is an entry point for the consumer, through `job_entry_point.py`, and executes jobs under the `jobs` folder.
+* In case the producer is still running, open a new terminal, leaving the producer terminal open. The consumer runs from the Spark Container. It runs spark applications against the Kafka broker. It has the following structure: there is an entry point for the consumer, through `job_entry_point.py`, and executes jobs under the `jobs` folder.
 
 ![Alt text](diagram_spark.png?raw=true "Optional Title")
 
