@@ -3,7 +3,7 @@ Kafka*Docker*Solution
 
 ## What it does?
 
-It streams data from files under the `data_to_stream` via Kafka and it is consumed via Spark.
+It streams data from files under the `data_to_load` via Kafka and it is consumed via Spark.
 
 
 
