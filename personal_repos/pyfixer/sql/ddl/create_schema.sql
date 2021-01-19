@@ -1,0 +1,3 @@
+DROP SCHEMA IF EXISTS forex_rates CASCADE;
+
+CREATE SCHEMA forex_rates;
